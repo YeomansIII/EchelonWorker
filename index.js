@@ -1,6 +1,27 @@
-var request = require('request');
-var express = require('express');
+var request = require('request'),
+  express = require('express'),
+  Queue = require('firebase-queue'),
+  Firebase = require('firebase');
 var app = express();
+
+
+function startQueue() {
+  console.log('Starting Firebase GCM Queue');
+  var ref = new Firebase('https://<your-firebase>.firebaseio.com/queue');
+  var queue = new Queue(ref, function(data, progress, resolve, reject) {
+    // Read and process task data
+    console.log(data);
+
+    // Do some work
+    progress(50);
+
+    // Finish the task asynchronously
+    setTimeout(function() {
+      resolve();
+    }, 1000);
+  });
+}
+
 
 app.get('/spotify-auth/', function(req, res) {
   res.send('This api is meant to be accessed using a POST request.');
@@ -23,5 +44,6 @@ app.post('/spotify-auth/', function(req, res) {
 });
 
 app.listen(3000, function() {
-  console.log('Example app listening on port 3000!');
+  console.log('Echelon API listening on port 3000!');
+  startQueue();
 });
