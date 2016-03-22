@@ -9,7 +9,7 @@ var sender = new gcm.Sender('YOUR_API_KEY_HERE');
 
 function startInviteQueue() {
   console.log('Starting Firebase GCM Invite Queue');
-  var ref = new Firebase('https://flickering-heat-6442.firebaseio.com/queue/gcm/invite');
+  var ref = new Firebase('https://flickering-heat-6442.firebaseio.com/queue/invite');
   var queue = new Queue(ref, function(data, progress, resolve, reject) {
     // Read and process task data
     console.log(data);
@@ -53,7 +53,7 @@ function startInviteQueue() {
         }
       });
     } else {
-      reject();
+      reject('Proper data not provided');
     }
   });
 }
@@ -81,4 +81,12 @@ app.post('/spotify-auth/', function(req, res) {
 app.listen(3000, function() {
   console.log('Echelon API listening on port 3000!');
   startInviteQueue();
+});
+
+process.on('SIGINT', function() {
+  console.log('Starting queue shutdown');
+  queue.shutdown().then(function() {
+    console.log('Finished queue shutdown');
+    process.exit(0);
+  });
 });
