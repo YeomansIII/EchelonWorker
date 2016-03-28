@@ -1,16 +1,29 @@
 var request = require('request'),
   express = require('express'),
+  bodyParser = require('body-parser'),
   Queue = require('firebase-queue'),
   Firebase = require('firebase'),
-  gcm = require('node-gcm');
+  gcm = require('node-gcm'),
+  FirebaseTokenGenerator = require('firebase-token-generator');
 var app = express();
+app.use(bodyParser.json());
 
 var sender = new gcm.Sender('YOUR_API_KEY_HERE');
+
+var tokenGenerator;
+var queue;
+
+if (process.argv.indexOf('development') > 1) {
+  console.log(process.env.WORKER_DEV_FIRE_TOKEN);
+  tokenGenerator = new FirebaseTokenGenerator(process.env.WORKER_DEV_FIRE_TOKEN);
+} else {
+  tokenGenerator = new FirebaseTokenGenerator(process.env.WORKER_PROD_FIRE_TOKEN);
+}
 
 function startInviteQueue() {
   console.log('Starting Firebase GCM Invite Queue');
   var ref = new Firebase('https://flickering-heat-6442.firebaseio.com/queue/invite');
-  var queue = new Queue(ref, function(data, progress, resolve, reject) {
+  queue = new Queue(ref, function(data, progress, resolve, reject) {
     // Read and process task data
     console.log(data);
     progress(10);
@@ -63,23 +76,33 @@ app.get('/spotify-auth/', function(req, res) {
 });
 
 app.post('/spotify-auth/', function(req, res) {
-  data_json = JSON.parse(req.body);
-
+  data_json = req.body;
   request({
     headers: {
       "Authorization": "Bearer " + data_json.access_token
     },
     uri: 'https://api.spotify.com/v1/me',
     method: 'GET'
-  }, function(err, res, body) {
-    console.log(body);
+  }, function(err, res2, body) {
+    if (err !== null) {
+      jbody = JSON.parse(body);
+      if (jbody.error === 'undefined' || (jbody.id + '_spotify') !== data_json.uid) {
+        res.send('The provided Spotify Access Token is not valid');
+      } else {
+        var token = tokenGenerator.createToken({
+          uid: data_json.uid,
+          access_token: data_json.access_token
+        });
+        res.send(token);
+      }
+    } else {
+      res.send('And error has occurred, try again later');
+    }
   });
-
-  res.send('Good job');
 });
 
-app.listen(3000, function() {
-  console.log('Echelon API listening on port 3000!');
+app.listen(3002, function() {
+  console.log('Echelon API listening on port 3002!');
   startInviteQueue();
 });
 
