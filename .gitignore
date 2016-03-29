@@ -1,1 +1,3 @@
 node_modules/
+secrets_dev.js
+secrets_prod.js

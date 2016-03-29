@@ -1,3 +1,6 @@
+/* jshint node: true */
+'use strict';
+
 var request = require('request'),
   express = require('express'),
   bodyParser = require('body-parser'),
@@ -13,12 +16,15 @@ var sender = new gcm.Sender('YOUR_API_KEY_HERE');
 var tokenGenerator;
 var queue;
 
-if (process.argv.indexOf('development') > 1) {
-  console.log(process.env.WORKER_DEV_FIRE_TOKEN);
-  tokenGenerator = new FirebaseTokenGenerator(process.env.WORKER_DEV_FIRE_TOKEN);
+var env = process.env.EWORKER_ENV;
+var secrets;
+if (env === 'production') {
+  secrets = require('./secrets_prod.js');
 } else {
-  tokenGenerator = new FirebaseTokenGenerator(process.env.WORKER_PROD_FIRE_TOKEN);
+  secrets = require('./secrets_dev.js');
 }
+
+tokenGenerator = new FirebaseTokenGenerator(secrets.firebaseToken);
 
 function startInviteQueue() {
   console.log('Starting Firebase GCM Invite Queue');
@@ -76,7 +82,7 @@ app.get('/spotify-auth/', function(req, res) {
 });
 
 app.post('/spotify-auth/', function(req, res) {
-  data_json = req.body;
+  var data_json = req.body;
   request({
     headers: {
       "Authorization": "Bearer " + data_json.access_token
@@ -84,8 +90,8 @@ app.post('/spotify-auth/', function(req, res) {
     uri: 'https://api.spotify.com/v1/me',
     method: 'GET'
   }, function(err, res2, body) {
-    if (err !== null) {
-      jbody = JSON.parse(body);
+    if (err === null) {
+      var jbody = JSON.parse(body);
       if (jbody.error === 'undefined' || (jbody.id + '_spotify') !== data_json.uid) {
         res.send('The provided Spotify Access Token is not valid');
       } else {
@@ -96,20 +102,28 @@ app.post('/spotify-auth/', function(req, res) {
         res.send(token);
       }
     } else {
-      res.send('And error has occurred, try again later');
+      console.log(err);
+      res.send('An error has occurred, try again later');
     }
   });
 });
 
-app.listen(3002, function() {
-  console.log('Echelon API listening on port 3002!');
-  startInviteQueue();
-});
+if (module === require.main) {
+  var server = app.listen(process.env.PORT || 8080, function() {
+    var host = server.address().address;
+    var port = server.address().port;
 
-process.on('SIGINT', function() {
-  console.log('Starting queue shutdown');
-  queue.shutdown().then(function() {
-    console.log('Finished queue shutdown');
-    process.exit(0);
+    console.log('App listening at http://%s:%s', host, port);
+    //startInviteQueue();
   });
-});
+}
+
+module.exports = app;
+
+// process.on('SIGINT', function() {
+//   console.log('Starting queue shutdown');
+//   queue.shutdown().then(function() {
+//     console.log('Finished queue shutdown');
+//     process.exit(0);
+//   });
+// });
