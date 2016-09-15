@@ -1,15 +1,17 @@
 {
-  "name": "echelonapi",
-  "version": "0.0.1",
+  "name": "echelonworker",
+  "version": "0.1.0",
   "description": "An Echelon backend worker",
   "main": "app.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YeomansIII/Echelonado.git"
+    "url": "git+https://github.com/YeomansIII/EchelonWorker.git"
   },
   "keywords": [
     "api",
-    "worker"
+    "worker",
+    "echelon",
+    "music"
   ],
   "private": true,
   "scripts": {
@@ -28,15 +30,15 @@
     }
   ],
   "bugs": {
-    "url": "https://github.com/YeomansIII/Echelonado/issues"
+    "url": "https://github.com/YeomansIII/EchelonWorker/issues"
   },
-  "homepage": "https://github.com/YeomansIII/Echelonado#readme",
+  "homepage": "https://github.com/YeomansIII/EchelonWorker#readme",
   "dependencies": {
     "body-parser": "^1.15.0",
     "express": "^4.14.0",
     "firebase": "^3.3.2",
     "firebase-queue": "^1.5.0",
-    "gcloud": "^0.37.0",
+    "google-cloud": "^0.40.0",
     "node-gcm": "^0.14.4",
     "request": "^2.74.0"
   },
