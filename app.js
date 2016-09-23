@@ -118,16 +118,16 @@ if (module === require.main) {
         var port = server.address().port;
 
         console.log('App listening at http://%s:%s', host, port);
-        //startInviteQueue();
+        startInviteQueue();
     });
 }
 
 module.exports = app;
 
-// process.on('SIGINT', function() {
-//   console.log('Starting queue shutdown');
-//   queue.shutdown().then(function() {
-//     console.log('Finished queue shutdown');
-//     process.exit(0);
-//   });
-// });
+process.on('SIGINT', function() {
+  console.log('Starting queue shutdown');
+  queue.shutdown().then(function() {
+    console.log('Finished queue shutdown');
+    process.exit(0);
+  });
+});
