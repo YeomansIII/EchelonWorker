@@ -6,7 +6,7 @@ var request = require('request'),
     bodyParser = require('body-parser'),
     Queue = require('firebase-queue'),
     firebase = require('firebase'),
-    gcm = require('node-gcm');
+    FCM = require('fcm-node');
 var app = express();
 app.use(bodyParser.json());
 
@@ -17,7 +17,8 @@ firebase.initializeApp({
 
 var db = firebase.database();
 
-var sender = new gcm.Sender('YOUR_API_KEY_HERE');
+var serverKey = 'AIzaSyAf9V9Nsx5qG2BFzQYzMzokMFULNt0j8VI';
+var fcm = new FCM(serverKey);
 
 var queue;
 
@@ -32,40 +33,42 @@ function startInviteQueue() {
         // Read and process task data
         console.log(data);
         progress(10);
-        if (typeof data.groupName !== 'undefined' && typeof data.inviter !== 'undefined' && typeof data.invitee !== 'undefined') {
+        if (typeof data.group_name !== 'undefined' && typeof data.inviter !== 'undefined' && typeof data.invitee !== 'undefined') {
             db.ref('users/' + data.invitee + '/devices').once('value', function (snapshot) {
                 progress(30);
                 var regTokens = [];
                 snapshot.forEach(function (device) {
-                    regTokens.push(device.val().gcmId);
+                    regTokens.push(device.val().messagingId);
                 });
-                var message = new gcm.Message({
-                    collapseKey: 'invite',
+                var message = {
+                    registration_ids: regTokens,
+                    collapse_key: 'invite',
                     priority: 'high',
-                    contentAvailable: true,
-                    delayWhileIdle: true,
-                    timeToLive: 3,
-                    restrictedPackageName: "io.yeomans.echelon",
-                    dryRun: true,
+                    content_available: true,
+                    delay_while_idle: true,
+                    time_to_live: 10000,
+                    restricted_package_name: "io.yeomans.echelon",
                     data: {
-                        groupName: data.groupName,
+                        join_group: true,
+                        group_name: data.group_name,
                         inviter: data.inviter,
+                        inviter_display_name: data.inviter_display_name,
                         invitee: data.invitee
                     },
                     notification: {
                         title: 'Echelon Invite',
                         icon: "ic_launcher",
-                        body: data.inviter + ' has invited you to join the group "' + data.groupName + '" on Echelon'
+                        body: data.inviter_display_name + ' has invited you to join the group "' + data.group_name + '" on Echelon'
                     }
-                });
+                };
 
                 progress(60);
 
-                sender.send(message, {
-                    registrationTokens: regTokens
-                }, function (err, response) {
+                console.log('Reg Tokens: ', regTokens);
+
+                fcm.send(message, function (err, response) {
                     if (err) {
-                        console.error(err);
+                        console.error('Error: ', err);
                         reject();
                     } else {
                         console.log(response);
@@ -85,6 +88,7 @@ app.get('/spotify-auth/', function (req, res) {
 
 app.post('/spotify-auth/', function (req, res) {
     var data_json = req.body;
+    console.log(data_json);
     request({
         headers: {
             "Authorization": "Bearer " + data_json.access_token
@@ -94,20 +98,21 @@ app.post('/spotify-auth/', function (req, res) {
     }, function (err, res2, body) {
         if (err === null) {
             var jbody = JSON.parse(body);
+            console.log(jbody);
             if (jbody.error === 'undefined' || (jbody.id + '_spotify') !== data_json.uid) {
-                res.send('The provided Spotify Access Token is not valid');
+                res.send({error: 'Provided Spotify Auth Token is not valid'});
             } else {
                 var token;
                 token = firebase.auth().createCustomToken(data_json.uid, {
                     access_token: data_json.access_token
                 });
                 if (token !== undefined && token !== null && token !== 'undefined') {
-                    res.send(token);
+                    res.send({token: token});
                 }
             }
         } else {
             console.log(err);
-            res.send('An error has occurred, try again later');
+            res.send({error: 'An error has occurred, try again later'});
         }
     });
 });
@@ -124,10 +129,10 @@ if (module === require.main) {
 
 module.exports = app;
 
-process.on('SIGINT', function() {
-  console.log('Starting queue shutdown');
-  queue.shutdown().then(function() {
-    console.log('Finished queue shutdown');
-    process.exit(0);
-  });
+process.on('SIGINT', function () {
+    console.log('Starting queue shutdown');
+    queue.shutdown().then(function () {
+        console.log('Finished queue shutdown');
+        process.exit(0);
+    });
 });
