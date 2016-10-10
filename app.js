@@ -81,14 +81,40 @@ function startInviteQueue() {
         }
     });
 }
+app.options('/spotify-auth/', function (req, res) {
+    var data_json = req.body;
+    console.log(data_json);
+    if (data_json.development) {
+        res.header('Access-Control-Allow-Origin', 'localhost:9000');
+    } else {
+        res.header('Access-Control-Allow-Origin', 'echelonapp.io');
+    }
+    res.header('Access-Control-Allow-Methods', 'GET,OPTIONS,PUT,POST,DELETE');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+});
 
 app.get('/spotify-auth/', function (req, res) {
-    res.send('This api is meant to be accessed using a POST request.');
+    var data_json = req.body;
+    console.log(data_json);
+    if (data_json.development) {
+        res.header('Access-Control-Allow-Origin', 'localhost:9000');
+    } else {
+        res.header('Access-Control-Allow-Origin', 'echelonapp.io');
+    }
+    res.header('Access-Control-Allow-Methods', 'GET,OPTIONS,PUT,POST,DELETE');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
 });
 
 app.post('/spotify-auth/', function (req, res) {
     var data_json = req.body;
     console.log(data_json);
+    if (data_json.development) {
+        res.header('Access-Control-Allow-Origin', 'localhost:9000');
+    } else {
+        res.header('Access-Control-Allow-Origin', 'echelonapp.io');
+    }
+    res.header('Access-Control-Allow-Methods', 'GET,OPTIONS,PUT,POST,DELETE');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
     request({
         headers: {
             "Authorization": "Bearer " + data_json.access_token
